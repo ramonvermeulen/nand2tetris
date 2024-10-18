@@ -26,6 +26,7 @@
 // if (f == 0)  sets out = x & y  // bitwise and
 // if (no == 1) sets out = !out   // bitwise not
 
+/* Tip: I drew this out on paper first, otherwise it is almost impossible */
 CHIP ALU {
     IN  
         x[16], y[16],  // 16-bit inputs        
@@ -41,5 +42,36 @@ CHIP ALU {
         ng;      // if (out < 0)  equals 1, else 0
 
     PARTS:
-    //// Replace this comment with your code.
+    Mux16(a=x, b=false, sel=zx, out=xZeroed);
+    Mux16(a=y, b=false, sel=zy, out=yZeroed);
+    Not16(in=xZeroed, out=xZeroedFlipped);
+    Not16(in=yZeroed, out=yZeroedFlipped);
+    Mux16(a=xZeroed, b=xZeroedFlipped, sel=nx, out=xCleaned);
+    Mux16(a=yZeroed, b=yZeroedFlipped, sel=ny, out=yCleaned);
+
+    And16(a=xCleaned, b=yCleaned, out=outAnd);
+    Add16(a=xCleaned, b=yCleaned, out=outAdd);
+    Mux16(a=outAnd, b=outAdd, sel=f, out=outF);
+
+    Not16(in=outF, out=outFFlipped);
+    Mux16(
+        a=outF,
+        b=outFFlipped,
+        sel=no,
+        out=out, // final output
+        // rest is for nr and zo outputs
+        out[15]=outFirstBit,
+        out[0..7]=firstHalf,
+        out[8..15]=secondHalf
+    );
+
+    And(a=true, b=outFirstBit, out=ng); // ng output (simple: check first bit e.g. signed vs unsigned)
+
+    // zero out (use 2x Or8Way to check if bot halfs only contains zeros, we didn't make a Or16Way in the course)
+    Or8Way(in=firstHalf, out=firstHalfOut);
+    Or8Way(in=secondHalf, out=secondHalfOut);
+
+    // and then combine and flip the result
+    Or(a=firstHalfOut, b=secondHalfOut, out=zrNotFlipped);
+    Not(in=zrNotFlipped, out=zr); // zr output
 }
