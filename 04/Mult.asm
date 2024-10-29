@@ -54,21 +54,12 @@ M=-M
 @END
 0;JMP
 
-(POST_LOGIC_R1)
-@R1
-D=M
-@INVERSE_OUTCOME
-D;JLT
-@END
-D;JGE
-
-
-// if R0 < 0 && R1 < 0 inverse outcome
+// if R0 < 0 || R0 < 0 && R1 < 0 inverse outcome
 (POST_LOGIC_R0)
 @R0
 D=M
-@POST_LOGIC_R1
-D;JLT // R0 < 0 jump POST_LOGIC_R1
+@INVERSE_OUTCOME
+D;JLT
 
 // infinite loop as end
 (END)
