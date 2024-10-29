@@ -31,8 +31,7 @@ D;JEQ // if R1 == 0, END -> X times 0 is always 0
 // i < 0 so inverse + 1
 // TODO try -M instead
 @i
-M=!M
-M=M+1
+M=-M
 
 // while i >= 0
 (MULTIPLICATION_LOOP)
@@ -51,8 +50,7 @@ M=M+1
 
 (INVERSE_OUTCOME)
 @R2
-M=!M
-M=M+1
+M=-M
 @END
 0;JMP
 
