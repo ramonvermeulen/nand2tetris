@@ -6,8 +6,7 @@
  * The Hack Central Processing unit (CPU).
  * Parses the binary code in the instruction input and executes it according to the
  * Hack machine language specification. In the case of a C-instruction, computes the
- * function specified by the instruction. If the instruction specifies to read a memory
- * value, the inM input is expected to contain this value. If the instruction specifies
+ * function specified by the instruction. If the instruction specifies to read a memory value, the inM input is expected to contain this value. If the instruction specifies
  * to write a value to the memory, sets the outM output to this value, sets the addressM
  * output to the target address, and asserts the writeM output (when writeM = 0, any
  * value may appear in outM).
@@ -31,19 +30,30 @@ CHIP CPU {
         addressM[15],    // Address in data memory (of M)
         pc[15];          // address of next instruction
 
-	// C instruction specification
-	// jump = instruction[0..2]
-	// dest = instruction[3..5]
-	// com = instruction[6..12]
-	// not_used = instruction[13..14]
-	// opcode = instruction[15]
-
     PARTS:
-	Mux16(a=intruction, b=outAlu, sel= , out=outInsMux);
-	Mux16(a= , b= , sel= , out= );
-	ALU(x= , y= , zx= , nx= , zy= , ny= , f= , no= , out=outAlu, zr= , ng= );
-	Register(in=outInsMux, load= , out=aRegister);
-	Register(in=outAlu, load= , out=dRegister);
-	Register(in= , load= , out=cRegister);
-	PC(in= , load= , inc= , reset=reset, out= );
+    // A-Register
+	Mux16(a=instruction, b=outAlu, sel=instruction[15], out=outAMux);
+    Mux(a=true, b=instruction[5], sel=instruction[15], out=loadAReg);
+    ARegister(in=outAMux, load=loadAReg, out=AReg, out[0..14]=addressM);
+
+    // D-Register
+    Mux(a=false, b=instruction[4], sel=instruction[15], out=loadDReg);
+    DRegister(in=outAlu, load=loadDReg, out=DReg);
+
+    // ALU
+    Mux16(a=AReg, b=inM, sel=instruction[12], out=ARegMux);
+	ALU(x=DReg, y=ARegMux, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outAlu, out=outM, zr=outZr, ng=outNg);
+    // A or C instruction
+    Mux(a=false, b=instruction[3], sel=instruction[15], out=writeM);
+   
+    Not(in=outNg, out=notNG);
+    Or(a=outZr, b=notNG, out=ZRornotNG);
+    Not(in=outZr, out=notZR);
+    Or(a=outZr, b=outNg, out=ZRorNG);
+    And(a=notNG, b=notZR, out=notNGandnotZR);
+    Mux8Way16(a=false, b[0]=notNGandnotZR, c[0]=outZr, d[0]=ZRornotNG, e[0]=outNg, f[0]=notZR, g[0]=ZRorNG, h=true, sel=instruction[0..2], out[0]=outJMP);
+
+    //PC
+    Mux(a=false, b=outJMP, sel=instruction[15], out=finalOutJMP);
+    PC(in=AReg, load=finalOutJMP, inc=true, reset=reset, out[0..14]=pc);
 }
